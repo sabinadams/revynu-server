@@ -1,5 +1,5 @@
 {
     "name": "Revynu",
-    "description": "App Description",
-    "keywords": ["ionic2", "heroku", "pereless360"]
+    "description": "Express server for Revynu app",
+    "keywords": ["apps", "revynu", "nodejs", "express"]
 }
