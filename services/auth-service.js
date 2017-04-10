@@ -31,6 +31,8 @@ module.exports = class AuthService {
 		});
 	}
 
+
+
 	register(data, cb){
 		if(data.username.length > 0 
 			&& data.email.length > 0 
@@ -81,7 +83,6 @@ module.exports = class AuthService {
 			}
 		});
 	}
-
 
 	forgotPasswordEmail(email, cb) {
 			this.db.collection('users').find( { email: email } ).toArray((err, data) => {

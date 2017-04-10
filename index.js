@@ -37,7 +37,6 @@ app.use((req, res, next) => {
   } else {
 	  return res.status(401).send({message: "Not Authenticated."})
   }
-
 });
 
 app.set('port', process.env.PORT || 5000);
@@ -55,8 +54,20 @@ app.get('/', (req, res) => {
 });
 
 app.get('/test', (req, res) => {
-	res.setHeader('Content-Type', 'application/json');
-    res.send(JSON.stringify({ a: 1 }));
+  res.status(200).send({
+  	id: 1,
+  	name: "Sabin",
+  	token: '123456lksdfj67890',
+  	email: 'sabintheworld@gmail.com',
+  	photos: ['test.jpg', 'something.png'],
+  	friends: [
+  		{
+  			name: 'Susie',
+  			age: 48,
+  			email: 'susie@gmail.com'
+  		}
+  	]
+  });
 });
 
 app.post('/login', (req, res) => {
