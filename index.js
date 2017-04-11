@@ -21,7 +21,6 @@ app.use((req, res, next) => {
   if(req.method == 'OPTIONS'){
   	return res.status(200).send({message: "Preflight check successful"});
   }
-
   if(req.url == '/login' 
     || req.url == '/register'
     || req.url == '/forgotpasswordemail'
@@ -55,23 +54,6 @@ app.get('/', (req, res) => {
   res.send('GET request to the homepage')
 });
 
-app.get('/test', (req, res) => {
-  res.status(200).send({
-  	id: 1,
-  	name: "Sabin",
-  	token: '123456lksdfj67890',
-  	email: 'sabintheworld@gmail.com',
-  	photos: ['test.jpg', 'something.png'],
-  	friends: [
-  		{
-  			name: 'Susie',
-  			age: 48,
-  			email: 'susie@gmail.com'
-  		}
-  	]
-  });
-});
-
 app.post('/login', (req, res) => {
 	let _authService = new AuthService(db);
 	_authService.login(req.body, data => {
@@ -95,7 +77,7 @@ app.post('/forgotpasswordemail', (req, res) => {
 
 app.post('/forgotpasschangepass', (req, res) => {
   let _authService = new AuthService(db);
-  _authService.forgotPasswordChangePass(req.body.data, data => {
+  _authService.forgotPasswordChangePass(req.body, data => {
     return res.send(data);
   });
 }); 

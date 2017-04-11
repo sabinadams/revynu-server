@@ -1,4 +1,6 @@
 const crypto = require('crypto');
+const nodemailer = require('nodemailer');
+const fs = require('fs');
 
 module.exports = class AuthService {
 	constructor(db) {
@@ -69,8 +71,7 @@ module.exports = class AuthService {
 	}
 
 	login(data, cb) {
-		console.log(data);
-		let password_hash = crypto.createHash('md5').update(data.password).digest('hex');
+		let password_hash = this._createHash(data.password);
 		this.db.collection('users').find( { password: password_hash, username: data.username } ).toArray((err, retrieve_data) => {
 			if(retrieve_data.length == 1){
 				let token = this._createUUID();
@@ -89,11 +90,12 @@ module.exports = class AuthService {
 	}
 
 	forgotPasswordEmail(email, cb) {
+		if(email.length < 1) cb({status: 401, error: 'Please input an email address.'});
 		this.db.collection('users').find( { email: email } ).toArray((err, data) => {
 			if(data.length == 1){
 				let code = Math.random().toString(36).substr(2, 5);
 				this.db.collection('users').update({email: email, token: data[0].token}, {$set: {changePassToken: code, changeTimestamp: new Date().getTime()}}, (err, update_res) => {
-					fs.readFile('util/forgotPassEmail.html', function (err, html) {
+					fs.readFile(__dirname + '/util/forgotPasswordEmail.html', function (err, html) {
 						let file = html.toString().replace(/#code#/, code);
 					    if (err) {
 					        throw err; 
@@ -101,7 +103,7 @@ module.exports = class AuthService {
 					    // create reusable transporter object using the default SMTP transport
 					    let transporter = nodemailer.createTransport({
 					        service: 'gmail',
-					        auth: { user: 'sabintheworld@gmail.com', pass: '798140S@b1n@d@mz' }
+					        auth: { user: 'revynu.team@gmail.com', pass: '798140Sa' }
 					    });
 
 					    // setup email data with unicode symbols
@@ -116,7 +118,7 @@ module.exports = class AuthService {
 					    transporter.sendMail(mailOptions, (error, info) => {
 					        if (error) {
 					        	console.log(error);
-					            cb({ status: 401, message: "There was a problem sending the email." });
+					            cb({ status: 401, error: "There was a problem sending the email." });
 					        }
 					        cb({ status: 200, message: `An email containing the verification code was sent to ${email}. This code is valid for 15 minutes.` });
 					    });   
@@ -125,17 +127,17 @@ module.exports = class AuthService {
 					
 				});
 			} else {
-				cb({ status: 401, message: 'There was no user with that email.' });
+				cb({ status: 401, error: 'There was no user with that email.' });
 			}
 		});
 	}
 
 	forgotPasswordChangePass(data, cb) {
-		this.db.collection('users').find( {changePassToken: data.code} ).toArray((err, res) => {
+		this.db.collection('users').find( {changePassToken: data.code.trim()} ).toArray((err, res) => {
 			if(res.length == 1){
 				let user = res[0];
-				if(user.newPass != user.newPassConfirm){
-					cb({ status: 401, message: 'The password did not match the confirm password' });
+				if(data.newPass != data.newPassConfirm){
+					return cb({ status: 400, error: 'The password did not match the confirm password.' });
 				}
 				let currTime = new Date().getTime();
 				if(this.getMinutesBetweenDates(new Date(user.changeTimestamp), new Date(currTime) ) <= 15){
@@ -151,12 +153,12 @@ module.exports = class AuthService {
 				} else {
 					cb({
 						status:401,
-						message: "Time limit passed",
+						error: "This code has expired. Please try again.",
 						timetaken: this.getMinutesBetweenDates(new Date(user.changeTimestamp), new Date(currTime))
 					});
 				}
 			} else {
-				cb({ status: 401, message: "Invalid code." });
+				cb({ status: 401, error: "Invalid code." });
 			}
 		});
 	}
