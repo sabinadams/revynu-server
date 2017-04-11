@@ -50,7 +50,7 @@ module.exports = class ProjectService {
 		//editProjectStartDate()
 
 	editProject(cb) {
-
+		
 	}
 
 	addTransaction(cb) {

@@ -4,7 +4,7 @@ var bodyParser = require('body-parser');
 var AuthService = require('./services/auth-service');
 var db;
 
-MongoClient.connect('mongodb://root:798140Sa@ds155130.mlab.com:55130/revynu', (err, database) => {
+MongoClient.connect('mongodb://root:798140Sa@ds159670.mlab.com:59670/heroku_gtn0649l', (err, database) => {
   if (err) return console.log(err)
   db = database;
 });
