@@ -21,6 +21,7 @@ app.use((req, res, next) => {
   if(req.method == 'OPTIONS'){
   	return res.status(200).send({message: "Preflight check successful"});
   }
+
   if(req.url == '/login' 
     || req.url == '/register'
     || req.url == '/forgotpasswordemail'
@@ -28,6 +29,7 @@ app.use((req, res, next) => {
   ){
   	return next();
   }
+  
   if(req.headers.authorization){
   	let bearer = req.headers.authorization.split(`Bearer `)[1];
   	_authService.verifyToken(bearer, (data) => {

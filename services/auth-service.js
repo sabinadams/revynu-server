@@ -1,7 +1,7 @@
 const crypto = require('crypto');
 
 module.exports = class AuthService {
-	constructor(db){
+	constructor(db) {
 		this.db = db;
 	}
 
@@ -14,7 +14,7 @@ module.exports = class AuthService {
 		});
 	}
 
-	_createHash(data){
+	_createHash(data) {
 		return crypto.createHash('md5').update(data).digest('hex');
 	}
 
@@ -31,9 +31,13 @@ module.exports = class AuthService {
 		});
 	}
 
+	verifyUser(id, token, cb){
+		this.db.collection('users').find( { _id: id, device_token: token.toString() } ).toArray((err, data) => {
+			cb(data.length ? true : false);
+		});
+	}
 
-
-	register(data, cb){
+	register(data, cb) {
 		if(data.username.length > 0 
 			&& data.email.length > 0 
 			&& data.password.length > 0 
@@ -61,7 +65,6 @@ module.exports = class AuthService {
 			});
 		} else {
 			cb({ status: 401, error: 'Either not all fields were filled out or the password did not match the password confirm' });
-			
 		}
 	}
 
@@ -74,8 +77,8 @@ module.exports = class AuthService {
 					cb({
 						username: retrieve_data[0].username,
 						email: retrieve_data[0].email,
-						remember_me: retrieve_data[0].remember_me,
-						token: token
+						token: token,
+						id: retrieve_data[0]._id
 					});
 				});
 			} else {
@@ -85,76 +88,82 @@ module.exports = class AuthService {
 	}
 
 	forgotPasswordEmail(email, cb) {
-			this.db.collection('users').find( { email: email } ).toArray((err, data) => {
-				if(data.length == 1){
-					let code = Math.random().toString(36).substr(2, 5);
-					this.db.collection('users').update({email: email, token: data[0].token}, {$set: {changePassToken: code, changeTimestamp: new Date().getTime()}}, (err, update_res) => {
-						fs.readFile('util/forgotPassEmail.html', function (err, html) {
-							let file = html.toString().replace(/#code#/, code);
-						    if (err) {
-						        throw err; 
-						    } 
-						    // create reusable transporter object using the default SMTP transport
-						    let transporter = nodemailer.createTransport({
-						        service: 'gmail',
-						        auth: { user: 'sabintheworld@gmail.com', pass: '798140S@b1n@d@mz' }
-						    });
+		this.db.collection('users').find( { email: email } ).toArray((err, data) => {
+			if(data.length == 1){
+				let code = Math.random().toString(36).substr(2, 5);
+				this.db.collection('users').update({email: email, token: data[0].token}, {$set: {changePassToken: code, changeTimestamp: new Date().getTime()}}, (err, update_res) => {
+					fs.readFile('util/forgotPassEmail.html', function (err, html) {
+						let file = html.toString().replace(/#code#/, code);
+					    if (err) {
+					        throw err; 
+					    } 
+					    // create reusable transporter object using the default SMTP transport
+					    let transporter = nodemailer.createTransport({
+					        service: 'gmail',
+					        auth: { user: 'sabintheworld@gmail.com', pass: '798140S@b1n@d@mz' }
+					    });
 
-						    // setup email data with unicode symbols
-						    let mailOptions = {
-						        from: 'Revynu', // sender address
-						        to: email, // list of receivers
-						        subject: 'Reset Password Verification Code', // Subject line
-						        html: file// html body
-						    };
+					    // setup email data with unicode symbols
+					    let mailOptions = {
+					        from: 'Revynu', // sender address
+					        to: email, // list of receivers
+					        subject: 'Reset Password Verification Code', // Subject line
+					        html: file// html body
+					    };
 
-						    // send mail with defined transport object
-						    transporter.sendMail(mailOptions, (error, info) => {
-						        if (error) {
-						        	console.log(error);
-						            cb({ status: 401, message: "There was a problem sending the email." });
-						        }
-						        cb({ status: 200, message: `An email containing the verification code was sent to ${email}. This code is valid for 15 minutes.` });
-						    });   
+					    // send mail with defined transport object
+					    transporter.sendMail(mailOptions, (error, info) => {
+					        if (error) {
+					        	console.log(error);
+					            cb({ status: 401, message: "There was a problem sending the email." });
+					        }
+					        cb({ status: 200, message: `An email containing the verification code was sent to ${email}. This code is valid for 15 minutes.` });
+					    });   
 
-						});
-						
 					});
-				} else {
-					cb({ status: 401, message: 'There was no user with that email.' });
-				}
-			});
-		}
+					
+				});
+			} else {
+				cb({ status: 401, message: 'There was no user with that email.' });
+			}
+		});
+	}
 
-		forgotPasswordChangePass(data, cb){
-			this.db.collection('users').find( {changePassToken: data.code} ).toArray((err, res) => {
-				if(res.length == 1){
-					let user = res[0];
-					if(user.newPass != user.newPassConfirm){
-						cb({ status: 401, message: 'The password did not match the confirm password' });
-					}
-					let currTime = new Date().getTime();
-					if(this.getMinutesBetweenDates(new Date(user.changeTimestamp), new Date(currTime) ) <= 15){
-						let password_hash = crypto.createHash('md5').update(data.newPass).digest('hex');
-						this.db.collection('users').update({token: user.token, password: user.password}, {$set: {password: password_hash, changePassToken: Math.random().toString(36)}}, (err, change_res) => {
-							if(err) throw err;
-							cb({
-								status:200,
-								message: "Password changed",
-								timetaken: this.getMinutesBetweenDates(new Date(user.changeTimestamp), new Date(currTime))
-							});
-						});
-					} else {
+	forgotPasswordChangePass(data, cb) {
+		this.db.collection('users').find( {changePassToken: data.code} ).toArray((err, res) => {
+			if(res.length == 1){
+				let user = res[0];
+				if(user.newPass != user.newPassConfirm){
+					cb({ status: 401, message: 'The password did not match the confirm password' });
+				}
+				let currTime = new Date().getTime();
+				if(this.getMinutesBetweenDates(new Date(user.changeTimestamp), new Date(currTime) ) <= 15){
+					let password_hash = crypto.createHash('md5').update(data.newPass).digest('hex');
+					this.db.collection('users').update({token: user.token, password: user.password}, {$set: {password: password_hash, changePassToken: Math.random().toString(36)}}, (err, change_res) => {
+						if(err) throw err;
 						cb({
-							status:401,
-							message: "Time limit passed",
+							status:200,
+							message: "Password changed",
 							timetaken: this.getMinutesBetweenDates(new Date(user.changeTimestamp), new Date(currTime))
 						});
-					}
+					});
 				} else {
-					cb({ status: 401, message: "Invalid code." });
+					cb({
+						status:401,
+						message: "Time limit passed",
+						timetaken: this.getMinutesBetweenDates(new Date(user.changeTimestamp), new Date(currTime))
+					});
 				}
-			});
-		}
+			} else {
+				cb({ status: 401, message: "Invalid code." });
+			}
+		});
+	}
+
+
+
+	changeEmail(cb) {
+		// Changes email...
+	}
 
 }
