@@ -69,6 +69,7 @@ module.exports = class AuthService {
 	}
 
 	login(data, cb) {
+		console.log(data);
 		let password_hash = crypto.createHash('md5').update(data.password).digest('hex');
 		this.db.collection('users').find( { password: password_hash, username: data.username } ).toArray((err, retrieve_data) => {
 			if(retrieve_data.length == 1){
